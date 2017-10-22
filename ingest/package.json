@@ -1,0 +1,30 @@
+{
+  "name": "ubi-ingest",
+  "version": "0.1.0",
+  "description": "ingests ubitok.io transactions from the blockchain into a db",
+  "main": "index.js",
+  "scripts": {
+    "start": "node index.js",
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/bonnag/ubitok-report.git"
+  },
+  "author": "Bonnag Limited",
+  "license": "UNLICENSED",
+  "private": true,
+  "bugs": {
+    "url": "https://github.com/bonnag/ubitok-report/issues"
+  },
+  "homepage": "https://github.com/bonnag/ubitok-report#readme",
+  "dependencies": {
+    "async": "^2.5.0",
+    "chai": "^4.0.2",
+    "mocha": "^3.4.2",
+    "pg": "^7.3.0",
+    "ubitok-jslib": "file:../../ubitok-jslib",
+    "web3": "^0.20.1",
+    "web3-provider-engine": "^13.2.9"
+  }
+}
