@@ -86,7 +86,7 @@ class BookIngester {
 
   _findFromBlock(doneCallback) {
     this._dbClient.query(
-      'SELECT last_block_number_ingested FROM book WHERE book_address = $1',
+      'SELECT last_block_number_ingested FROM book WHERE book_address = LOWER($1)',
       [this._bookInfo.bookAddress],
       (err, res) => {
         if (err) {
@@ -123,10 +123,20 @@ class BookIngester {
         this._ingestClientOrderEvents.bind(this, fromBlock, toBlock),
         this._ingestMarketOrderEvents.bind(this, fromBlock, toBlock),
         this._ingestClientPaymentEvents.bind(this, fromBlock, toBlock),
+        this._updateBookLastBlockNumberIngested.bind(this, this._bookInfo.bookAddress, fromBlock-1, toBlock),
       ], doneCallback
     );
   }
   
+  _updateBookLastBlockNumberIngested(bookAddress, prevLast, newLast, doneCallback) {
+    this._dbClient.query(
+      'UPDATE book set last_block_number_ingested = $1' +
+      'WHERE book_address = LOWER($2) AND last_block_number_ingested = $3',
+      [newLast, bookAddress, prevLast],
+      doneCallback
+    );
+  }
+
   _ingestClientOrderEvents(fromBlock, toBlock, doneCallback) {
     const filter = this._bookContract.ClientOrderEvent({}, {
       fromBlock: fromBlock,
@@ -187,8 +197,44 @@ class BookIngester {
       return doneCallback(error, null);
     }
     const decoratedClientOrderEvents = result;
-    console.log(JSON.stringify(decoratedClientOrderEvents));
-    return doneCallback(null, true);
+    const clientOrderEventRows = result.map(r => {
+      const row = UbiTokTypes.decodeClientOrderEvent(r);
+      row.bookAddress = r.address;
+      row.blockTimestamp = new Date(1000 * r.blockTimestamp);
+      row.transactionHash = r.transactionHash;
+      // TODO - hang on, we oughta make use of r.order too ...
+      return row;
+    });
+    AsyncJs.eachLimit(clientOrderEventRows, 3, this._insertClientOrderEventRow.bind(this), doneCallback);
+  }
+
+  _insertClientOrderEventRow(row, doneCallback) {
+    const query = {
+      text:
+        'INSERT INTO client_order_event (' +
+        '  book_address,' +
+        '  block_timestamp,' +
+        '  block_number,' +
+        '  transaction_hash,' +
+        '  log_index,' +
+        '  client_address,' +
+        '  client_order_event_type,' +
+        '  order_id,' +
+        '  max_matches' +
+        ') VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)',
+      values: [
+        row.bookAddress,
+        row.blockTimestamp,
+        row.blockNumber,
+        row.transactionHash,
+        row.logIndex,
+        row.client,
+        row.clientOrderEventType,
+        row.orderId,
+        (row.maxMatches === undefined ? undefined : parseInt(row.maxMatches, 10))
+      ],
+    }
+    this._dbClient.query(query, doneCallback);
   }
 
 }

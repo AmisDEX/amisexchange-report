@@ -10,14 +10,14 @@ CREATE TABLE client_order_event (
   book_address               varchar(42) not null,
   block_timestamp            timestamptz not null,
   block_number               int not null,
-  transaction_index          int not null,
+  transaction_hash           varchar(66) not null,
   -- careful - parity/geth differences with log_index?
   log_index                  int not null,
   client_address             varchar(42) not null,
   client_order_event_type    varchar not null,
     CHECK (client_order_event_type in ('Create', 'Continue', 'Cancel')),
   order_id                   varchar not null,
-  max_matches                int not null,
+  max_matches                int,
 
   PRIMARY KEY (book_address, block_number, log_index),
   FOREIGN KEY (book_address) REFERENCES book (book_address)
