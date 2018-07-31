@@ -1,2 +1,2 @@
-# amisexchange-report
+# amis-exchange-report
 Reporting tools for amis exchange
